@@ -4,26 +4,47 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import random
 import time
-
+from concurrent.futures import ThreadPoolExecutor
 import Bob
-
+import Alice
+import threading
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+    return name
 
-
+def getresult(future):
+    print(future.result())
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print_hi('PyCharm')
-    random.seed(time.time())
-    Realbob=Bob.Bob(7,64,3)
-    b=[2,1,3]
-    c=[1,2,1]
-    for i in range(500):
-        #print(Realbob.Multiply2(b,c,3))
-        Realbob.key_gen()
-        Realbob.encrypt([1,1,4,5,1,4,0])
-        print(Realbob.decrypt())
+    # random.seed(time.time())
+    #测试加解密字符串
+    Realbob=Bob.Bob(32,63,2)
+    RealAlice=Alice.Alice(32,63,2)
+    Realbob.key_gen()
+    print("Finished")
+    for i in Realbob.hx:
+        RealAlice.hx.append(i)
+    RealAlice.EncryptMessage("""身躯凛凛，相貌堂堂，一双眼光射寒星，两弯眉浑如刷漆，胸脯横阔，有万夫难敌之威风，话语轩昂，吐千丈凌云之志气，心雄胆大，是撼天狮子下云端，骨健筋强，如摇地貔貅临座上，如同天上降魔主，真是人间太岁神
+""")
+    print("Finished")
+    for i in RealAlice.estore:
+        Realbob.estore.append(i)
+    Realbob.DecryptMessage()
+    #测试正确率
+    # for i in range(500):
+    #     temp=[]
+    #     for index in range(32):
+    #         temp.append(random.randint(0,1))
+    #     Realbob.key_gen()
+    #     Realbob.encrypt(temp)
+    #     x=Realbob.decrypt()
+    #     if(x[0]==temp):
+    #         print("True")
+    #     else:
+    #         print("False")
+    #         print(i)
+    #         exit()
     #Realbob.Multiply([1, 0, 2, 0, 2, 0, 2],[0, 1, 0, 0, 0, 0, 0],7,3)
     # #print(Realbob.iv(1848,701))
     # print(Realbob.show_f(Realbob.g))

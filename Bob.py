@@ -1,7 +1,8 @@
 # coding=utf8
 import random
 import time
-
+import threading
+from concurrent.futures import ThreadPoolExecutor
 class Bob:
     N=0
     p=0
@@ -10,7 +11,8 @@ class Bob:
         self.N=N
         self.p=p
         self.q=q
-
+        self.t=[]
+        self.estore=[]
     #N---NRTU的标准参数,N1,1的个数，N2,-1的个数
     def Rand_Poly(self,N,N1,N2):
         x=[]#将会返回的多项式
@@ -121,7 +123,25 @@ class Bob:
         for i in range(self.N):
            c.append((a[i]+b[i])%self.p)
         return c
+
     #生成密钥
+    #生成密钥需要的线程函数
+    def Threading(self):
+        x1 = random.randint(1, int(self.N / 2))
+        f = self.Rand_Poly(self.N, x1, x1 - 1)
+        Fp2 = self.InversePoly(f, self.N, self.q)
+        Fp1 = self.InversePoly(f, self.N, self.p)
+        if (Fp1 != -1 and Fp2 != -1 and self.Multiply(Fp1, f, self.N, self.p)[0] == 1 and
+                self.Multiply(Fp2, f, self.N, self.q)[0] == 1):
+                    return [f,Fp1,Fp2]
+        else:
+            return 0
+    #生成线程的回调函数
+    def ThreadCallBack(self,future):
+        if(future.result()!=0):
+            print(future.result())
+            self.t.append(future.result())
+
     def key_gen_Weak(self):
         Fp=-1
         index=1
@@ -144,31 +164,54 @@ class Bob:
         self.hx=self.MultiplyModm(self.hx,self.p)
 
 
-    def key_gen(self):
+    def key_gen_Thread(self):
         Fp=-1
-        index=0
-        while(Fp==-1):
-            # index+=1
-            # random.seed(time.time()+index)
-            x1=random.randint(1,int(self.N/2))
-            x2=random.randint(1,self.N-x1)
-            self.g=self.Rand_Poly(self.N,x1,x1-1)
-            x1 = random.randint(1, int(self.N / 2))
-            x2 = random.randint(1, self.N - x1)
-            self.f=self.Rand_Poly(self.N,x1,x1-1)
-            Fp2=self.InversePoly(self.f,self.N,self.q)
-            Fp1=self.InversePoly(self.f,self.N,self.p)
-            if(Fp1!=-1 and Fp2!=-1 and self.Multiply(Fp1,self.f,self.N,self.p)[0]==1 and self.Multiply(Fp2,self.f,self.N,self.q)[0]==1):
-                Fp=0
-        self.Fp=Fp1
-        self.Fq=Fp2
+        x1 = random.randint(1, int(self.N / 2))
+        self.g = self.Rand_Poly(self.N, x1, x1 - 1)
+        x1 = random.randint(1, int(self.N / 2))
+        x2 = random.randint(1, self.N - x1)
+        self.r = self.Rand_Poly(self.N, x1, x2)
+        while(len(self.t)==0):
+            for i in range(12):
+                pool=ThreadPoolExecutor(max_workers=12)
+                x=pool.submit(self.Threading)
+                x.add_done_callback(self.ThreadCallBack)
+        pool.shutdown()
+        self.f=self.t[0][0]
+        self.Fp=self.t[0][1]
+        self.Fq=self.t[0][2]
         temp=[]#存储q*Fp
         for i in range(len(self.Fp)):
             temp.append(self.Fp[i]*self.q)
         #q*Fp*g
         self.hx=self.Multiply2(temp,self.g,self.N)
         self.hx=self.MultiplyModm(self.hx,self.p)
-
+    def key_gen(self):
+        Fp = -1
+        x1 = random.randint(1, int(self.N / 2))
+        self.g = self.Rand_Poly(self.N, x1, x1)
+        x1 = random.randint(1, int(self.N / 2))
+        # x2 = random.randint(1, self.N - x1)
+        self.r = self.Rand_Poly(self.N, x1, x1)
+        self.estore=[]
+        while (Fp == -1):
+            # index+=1
+            # random.seed(time.time()+index)
+            x1 = random.randint(1, int(self.N / 2))
+            self.f = self.Rand_Poly(self.N, x1, x1 - 1)
+            Fp2 = self.InversePoly(self.f, self.N, self.q)
+            Fp1 = self.InversePoly(self.f, self.N, self.p)
+            if (Fp1 != -1 and Fp2 != -1 and self.Multiply(Fp1, self.f, self.N, self.p)[0] == 1 and
+                    self.Multiply(Fp2, self.f, self.N, self.q)[0] == 1):
+                Fp = 0
+        self.Fp = Fp1
+        self.Fq = Fp2
+        temp = []  # 存储q*Fp
+        for i in range(len(self.Fp)):
+            temp.append(self.Fp[i] * self.q)
+        # q*Fp*g
+        self.hx = self.Multiply2(temp, self.g, self.N)
+        self.hx = self.MultiplyModm(self.hx, self.p)
     def encrypt_Weak(self,message):
         if(len(message)<self.N):
             for i in range(self.N-len(message)):
@@ -185,25 +228,24 @@ class Bob:
         if(len(message)<self.N):
             for i in range(self.N-len(message)):
                 message.append(0)
-        x1 = random.randint(1, int(self.N / 2))
-        x2 = random.randint(1, self.N - x1)
-        self.r=self.Rand_Poly(self.N,x1,x2)
         temp2=self.Multiply2(self.r,self.hx,self.N)#r*h
         self.e=self.add(temp2,message)#r*h+m
         self.e=self.MultiplyModm(self.e,self.p)
-
+        self.estore.append(self.e)
         return self.e
     #解密过程
     def decrypt(self):
-        temp=self.Multiply2(self.f,self.e,self.N)#f*e
-        temp=self.MultiplyModm(temp,self.p)
-        temp2=self.center_lift(temp,self.p)#temp2=a
-        b=[]
-        for i in temp2:
-            b.append(i%self.q)
-        #b=a%q
-        c=self.Multiply2(self.Fq,b,self.N)
-        c=self.MultiplyModm(c,self.q)
+        c=[]
+        for i in self.estore:
+            temp=self.Multiply2(self.f,i,self.N)#f*e
+            temp=self.MultiplyModm(temp,self.p)
+            temp2=self.center_lift(temp,self.p)#temp2=a
+            b=[]
+            for i in temp2:
+                b.append(i%self.q)
+            #b=a%q
+            temp3=self.Multiply2(self.Fq,b,self.N)
+            c.append(self.MultiplyModm(temp3,self.q))
         return c
     #输出多项式
     def show_f(self,f):
@@ -214,6 +256,31 @@ class Bob:
                 print(f"{f[i]}x^{i}")
             else:
                 print(f"{f[i]}x^{i}+",end="")
+    def EncryptMessage(self,m):
+        self.MessageBit=[]
+        for index1 in m:
+            value=ord(index1)
+            temp=[]
+            for index2 in range(32):
+                if(value%2==1):
+                    value=value-1
+                    value=value/2
+                    temp.append(1)
+                else:
+                    value=value/2
+                    temp.append(0)
+            self.MessageBit.append(temp)
+        for i in self.MessageBit:
+            self.encrypt(i)
+        self.MessageBit=[]
+    def DecryptMessage(self):
+        self.MessageBit=self.decrypt()
+        for i in self.MessageBit:
+            temp=0
+            for index in range(32):
+                if(i[index]==1):
+                    temp+=2**index
+            print(chr(temp),end="")
     #多项式求逆
     def InversePoly(self,a,N,p):
         k=0
@@ -241,14 +308,14 @@ class Bob:
         index2=0
         while(1):
             index+=1
-            if(index>10e4):
-                print("Error!!!")
+            if(index>10e2):
+                #print("Error!!!")
                 return -1
             while(f[0]==0 and self.deg(f)!=0):
                 index2 += 1
                 #f(x)=f(x)/x
-                if (index2 > 10e4):
-                    print("Error!!!")
+                if (index2 > 10e2):
+                    #print("Error!!!")
                     return -1
                 for i in range(1,len(f),1):
                     f[i-1]=f[i]
