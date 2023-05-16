@@ -13,6 +13,37 @@ class Bob:
         self.q=q
         self.t=[]
         self.estore=[]
+    def returnSecret(self):
+        return self.f,self.Fq,self.hx
+    def ReceiveOtherF_Fp(self,F1,Fq1,hx1):
+        self.F1=F1
+        self.Fq1=Fq1
+        self.hx1=hx1
+    def encrypt2(self,message):
+        if(len(message)<self.N):
+            for i in range(self.N-len(message)):
+                message.append(0)
+        temp2=self.Multiply2(self.r,self.hx1,self.N)#r*h
+        self.e=self.add(temp2,message)#r*h+m
+        self.e=self.MultiplyModm(self.e,self.p)
+        self.estore.append(self.e)
+        return self.e
+    #解密过程
+    def decrypt2(self,e=[]):
+        c=[]
+        if(len(e)==0):
+            pass
+        for i in e:
+            temp=self.Multiply2(self.F1,i,self.N)#f*e
+            temp=self.MultiplyModm(temp,self.p)
+            temp2=self.center_lift(temp,self.p)#temp2=a
+            b=[]
+            for i in temp2:
+                b.append(i%self.q)
+            #b=a%q
+            temp3=self.Multiply2(self.Fq1,b,self.N)
+            c.append(self.MultiplyModm(temp3,self.q))
+        return c
     #N---NRTU的标准参数,N1,1的个数，N2,-1的个数
     def Rand_Poly(self,N,N1,N2):
         x=[]#将会返回的多项式
@@ -186,6 +217,7 @@ class Bob:
         #q*Fp*g
         self.hx=self.Multiply2(temp,self.g,self.N)
         self.hx=self.MultiplyModm(self.hx,self.p)
+    #生成f和Fp,并且计算出hx
     def key_gen(self):
         Fp = -1
         x1 = random.randint(1, int(self.N / 2))
@@ -232,10 +264,29 @@ class Bob:
         self.e=self.add(temp2,message)#r*h+m
         self.e=self.MultiplyModm(self.e,self.p)
         self.estore.append(self.e)
-        return self.e
+        return self.estore
+    def TranMessageBit(self,m):
+        self.MessageBit = []
+        for index1 in m:
+            value = ord(index1)
+            temp = []
+            for index2 in range(32):
+                if (value % 2 == 1):
+                    value = value - 1
+                    value = value / 2
+                    temp.append(1)
+                else:
+                    value = value / 2
+                    temp.append(0)
+            self.MessageBit.append(temp)
+        return self.MessageBit
     #解密过程
-    def decrypt(self):
+    def decrypt(self,e=[]):
         c=[]
+        if(len(e)==0):
+            pass
+        else:
+            self.estore=e
         for i in self.estore:
             temp=self.Multiply2(self.f,i,self.N)#f*e
             temp=self.MultiplyModm(temp,self.p)
@@ -256,6 +307,10 @@ class Bob:
                 print(f"{f[i]}x^{i}")
             else:
                 print(f"{f[i]}x^{i}+",end="")
+
+    #输出公钥
+    def ReturnHx(self):
+        return self.hx
     def EncryptMessage(self,m):
         self.MessageBit=[]
         for index1 in m:
@@ -273,14 +328,24 @@ class Bob:
         for i in self.MessageBit:
             self.encrypt(i)
         self.MessageBit=[]
-    def DecryptMessage(self):
+    def returnE(self):
+        return self.estore
+    def DecryptMessage(self,e):
+        if(len(e)==0):
+            pass
+        else:
+            self.estore=e
+        #print("开始解密")
+        result=""
         self.MessageBit=self.decrypt()
         for i in self.MessageBit:
             temp=0
             for index in range(32):
                 if(i[index]==1):
                     temp+=2**index
-            print(chr(temp),end="")
+            #print(chr(temp),end="")
+            result+=chr(temp)
+        return result
     #多项式求逆
     def InversePoly(self,a,N,p):
         k=0

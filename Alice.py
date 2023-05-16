@@ -20,6 +20,61 @@ class Alice:
         # 生成密钥
         # 生成密钥需要的线程函数
         # N---NRTU的标准参数,N1,1的个数，N2,-1的个数
+    def returnSecret(self):
+        return self.f,self.Fq,self.hx
+    def ReceiveOtherF_Fp(self,F1,Fq1,hx1):
+        self.F1=F1
+        self.Fq1=Fq1
+        self.hx1=hx1
+    def encrypt2(self,message):
+        if(len(message)<self.N):
+            for i in range(self.N-len(message)):
+                message.append(0)
+        temp2=self.Multiply2(self.r,self.hx1,self.N)#r*h
+        self.e=self.add(temp2,message)#r*h+m
+        self.e=self.MultiplyModm(self.e,self.p)
+        self.estore.append(self.e)
+        return self.e
+    #解密过程
+    def decrypt(self,e=[]):
+        c=[]
+        if(len(e)==0):
+            pass
+        else:
+            self.estore=e
+        for i in self.estore:
+            temp=self.Multiply2(self.f,i,self.N)#f*e
+            temp=self.MultiplyModm(temp,self.p)
+            temp2=self.center_lift(temp,self.p)#temp2=a
+            b=[]
+            for i in temp2:
+                b.append(i%self.q)
+            #b=a%q
+            temp3=self.Multiply2(self.Fq,b,self.N)
+            c.append(self.MultiplyModm(temp3,self.q))
+        return c
+    #解密过程
+    def decrypt2(self,e=[]):
+        c=[]
+        if(len(e)==0):
+            pass
+        for i in e:
+            temp=self.Multiply2(self.F1,i,self.N)#f*e
+            temp=self.MultiplyModm(temp,self.p)
+            temp2=self.center_lift(temp,self.p)#temp2=a
+            b=[]
+            for i in temp2:
+                b.append(i%self.q)
+            #b=a%q
+            temp3=self.Multiply2(self.Fq1,b,self.N)
+            c.append(self.MultiplyModm(temp3,self.q))
+        return c
+    #输出公钥
+    def ReturnHx(self):
+        return self.hx
+    #返回密文
+    def returnE(self):
+        return self.estore
     def InversePoly(self,a,N,p):
         k=0
         #定义b(x)=1,c(x)=0,f(x)
@@ -47,13 +102,13 @@ class Alice:
         while(1):
             index+=1
             if(index>100):
-                print("Error!!!")
+                #print("Error!!!")
                 return -1
             while(f[0]==0 and self.deg(f)!=0):
                 index2 += 1
                 #f(x)=f(x)/x
                 if (index2 > 100):
-                    print("Error!!!")
+                    #print("Error!!!")
                     return -1
                 for i in range(1,len(f),1):
                     f[i-1]=f[i]
@@ -113,6 +168,21 @@ class Alice:
             for i in range(N):
                 f[i] = (f[i] - u * g[i])%p
                 b[i] = (b[i] - u * c[i])%p
+    def TranMessageBit(self,m):
+        self.MessageBit = []
+        for index1 in m:
+            value = ord(index1)
+            temp = []
+            for index2 in range(32):
+                if (value % 2 == 1):
+                    value = value - 1
+                    value = value / 2
+                    temp.append(1)
+                else:
+                    value = value / 2
+                    temp.append(0)
+            self.MessageBit.append(temp)
+        return self.MessageBit
     def EncryptMessage(self,m):
         self.MessageBit=[]
         for index1 in m:
@@ -273,7 +343,9 @@ class Alice:
         self.e=self.add(temp2,message)#r*h+m
         self.e=self.MultiplyModm(self.e,self.p)
         self.estore.append(self.e)
-        return self.e
+        return self.estore
+    def Receive(self,hx):
+        self.hx=hx
     def key_gen_Thread(self):
         Fp = -1
         x1 = random.randint(1, int(self.N / 2))

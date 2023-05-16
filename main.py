@@ -22,29 +22,65 @@ if __name__ == '__main__':
     Realbob=Bob.Bob(32,63,2)
     RealAlice=Alice.Alice(32,63,2)
     Realbob.key_gen()
-    print("Finished")
-    for i in Realbob.hx:
-        RealAlice.hx.append(i)
-    RealAlice.EncryptMessage("""身躯凛凛，相貌堂堂，一双眼光射寒星，两弯眉浑如刷漆，胸脯横阔，有万夫难敌之威风，话语轩昂，吐千丈凌云之志气，心雄胆大，是撼天狮子下云端，骨健筋强，如摇地貔貅临座上，如同天上降魔主，真是人间太岁神
-""")
-    print("Finished")
-    for i in RealAlice.estore:
-        Realbob.estore.append(i)
-    Realbob.DecryptMessage()
-    #测试正确率
+#     print("Finished")
+#     for i in Realbob.hx:
+#         RealAlice.hx.append(i)
+#     RealAlice.EncryptMessage("""身躯凛凛，相貌堂堂，一双眼光射寒星，两弯眉浑如刷漆，胸脯横阔，有万夫难敌之威风，话语轩昂，吐千丈凌云之志气，心雄胆大，是撼天狮子下云端，骨健筋强，如摇地貔貅临座上，如同天上降魔主，真是人间太岁神
+# """)
+#     print("Finished")
+#     for i in RealAlice.estore:
+#         Realbob.estore.append(i)
+#     Realbob.DecryptMessage()
+    #测试正确率，加密成功后再解密
+    # correct=0
+    # Realbob.key_gen()
     # for i in range(500):
     #     temp=[]
+    #     Realbob.estore=[]
     #     for index in range(32):
     #         temp.append(random.randint(0,1))
-    #     Realbob.key_gen()
+    #
     #     Realbob.encrypt(temp)
     #     x=Realbob.decrypt()
     #     if(x[0]==temp):
+    #         correct+=1
     #         print("True")
+    #
+    #
     #     else:
     #         print("False")
-    #         print(i)
-    #         exit()
+    # print(correct,500-correct,correct/500)
+
+
+    # #测试单纯公钥生成的时间效率
+    # for i in range(8):
+    #     correct=0
+    #     start=time.time()
+    #     for i in range(500):
+    #         Realbob.key_gen()
+    #     end=time.time()
+    #     print(f"耗时：{end-start}")
+
+
+
+    #测试加解密效率
+    for i in range(8):
+        Realbob.key_gen()
+        start=time.time()
+        for i in range(500):
+            temp=[]
+            Realbob.estore=[]
+            for index in range(32):
+                temp.append(random.randint(0,1))
+
+            Realbob.encrypt(temp)
+            x=Realbob.decrypt()
+        end=time.time()
+        print(f"耗时：{end - start}")
+
+
+
+
     #Realbob.Multiply([1, 0, 2, 0, 2, 0, 2],[0, 1, 0, 0, 0, 0, 0],7,3)
     # #print(Realbob.iv(1848,701))
     # print(Realbob.show_f(Realbob.g))
